@@ -4,16 +4,16 @@
 # Copyright (c) 2024 BarNeo. 
 # Thanks Nyr
 
-# Debian kullanıcılarını "sh" ile değil "bash" ile çalıştırmaya yönlendirme
+# Debian kullanicilarini "sh" ile degil "bash" ile calistirmaya yonlendirme
 if readlink /proc/$$/exe | grep -q "dash"; then
-    echo 'Bu yükleyici "bash" ile çalıştırılmalıdır, "sh" ile değil.'
+    echo 'Bu yukleyici "bash" ile calistirilmalidir, "sh" ile degil.'
     exit
 fi
 
-# Standart girdiyi yok say. Bir satırlık bir komuttan çalıştırıldığında gerekebilir.
+# Standart girdiyi yok say. Bir satirlik bir komuttan calistirildiginda gerekebilir.
 read -N 999999 -t 0.001
 
-# İşletim sistemini tespit et
+# Isletim sistemini tespit et
 if grep -qs "ubuntu" /etc/os-release; then
     os="ubuntu"
     os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
@@ -31,56 +31,56 @@ elif [[ -e /etc/fedora-release ]]; then
     os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
     group_name="nobody"
 else
-    echo "Bu yükleyici, desteklenmeyen bir dağıtım üzerinde çalışıyor. Desteklenen dağıtımlar: Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS ve Fedora."
+    echo "Bu yukleyici, desteklenmeyen bir dagitim uzerinde calisiyor. Desteklenen dagitimlar: Ubuntu, Debian, AlmaLinux, Rocky Linux, CentOS ve Fedora."
     exit
 fi
 
-# Ubuntu sürümü kontrolü
+# Ubuntu surumu kontrolu
 if [[ "$os" == "ubuntu" && "$os_version" -lt 2204 ]]; then
-    echo "Bu yükleyiciyi kullanmak için Ubuntu 22.04 veya daha yeni bir sürüm gereklidir. Bu Ubuntu sürümü çok eski ve desteklenmiyor."
+    echo "Bu yukleyiciyi kullanmak icin Ubuntu 22.04 veya daha yeni bir surum gereklidir. Bu Ubuntu surumu cok eski ve desteklenmiyor."
     exit
 fi
 
-# Debian sürümü kontrolü
+# Debian surumu kontrolu
 if [[ "$os" == "debian" ]]; then
     if grep -q '/sid' /etc/debian_version; then
-        echo "Debian Testing ve Debian Unstable bu yükleyici tarafından desteklenmiyor."
+        echo "Debian Testing ve Debian Unstable bu yukleyici tarafindan desteklenmiyor."
         exit
     fi
     if [[ "$os_version" -lt 11 ]]; then
-        echo "Bu yükleyiciyi kullanmak için Debian 11 veya daha yeni bir sürüm gereklidir. Bu Debian sürümü çok eski ve desteklenmiyor."
+        echo "Bu yukleyiciyi kullanmak icin Debian 11 veya daha yeni bir surum gereklidir. Bu Debian surumu cok eski ve desteklenmiyor."
         exit
     fi
 fi
 
-# CentOS sürümü kontrolü
+# CentOS surumu kontrolu
 if [[ "$os" == "centos" && "$os_version" -lt 9 ]]; then
     os_name=$(sed 's/ release.*//' /etc/almalinux-release /etc/rocky-release /etc/centos-release 2>/dev/null | head -1)
-    echo "$os_name 9 veya üzeri gereklidir. Bu $os_name sürümü çok eski ve desteklenmiyor."
+    echo "$os_name 9 veya uzeri gereklidir. Bu $os_name surumu cok eski ve desteklenmiyor."
     exit
 fi
 
-# $PATH değişkeni sbin dizinlerini içermiyorsa uyarı ver
+# $PATH degiskeni sbin dizinlerini icermiyorsa uyari ver
 if ! grep -q sbin <<< "$PATH"; then
-    echo '$PATH sbin içermiyor. "su -" komutunu kullanmayı deneyin.'
+    echo '$PATH sbin icermiyor. "su -" komutunu kullanmayi deneyin.'
     exit
 fi
 
-# Betiğin süper kullanıcı ayrıcalıklarıyla çalıştırılıp çalıştırılmadığını kontrol et
+# Betigin super kullanici ayricaliklariyla calistirilip calistirilmadigini kontrol et
 if [[ "$EUID" -ne 0 ]]; then
-    echo "Bu yükleyici süper kullanıcı ayrıcalıklarıyla çalıştırılmalıdır."
+    echo "Bu yukleyici super kullanici ayricaliklariyla calistirilmalidir."
     exit
 fi
 
-# TUN cihazının olup olmadığını kontrol et
+# TUN cihazinin olup olmadigini kontrol et
 if [[ ! -e /dev/net/tun ]] || ! ( exec 7<>/dev/net/tun ) 2>/dev/null; then
-    echo "Sistemde TUN cihazı mevcut değil. Bu yükleyiciyi çalıştırmadan önce TUN etkinleştirilmelidir."
+    echo "Sistemde TUN cihazi mevcut degil. Bu yukleyiciyi calistirmadan once TUN etkinlestirilmelidir."
     exit
 fi
 
-# Yeni bir istemci oluşturma işlevi
+# Yeni bir istemci olusturma islemi
 new_client () {
-    # Özel client.ovpn dosyasını oluşturur
+    # Ozel client.ovpn dosyasini olusturur
     {
     cat /etc/openvpn/server/client-common.txt
     echo "<ca>"
@@ -98,72 +98,72 @@ new_client () {
     } > ~"$client".ovpn
 }
 
-# OpenVPN sunucu yapılandırmasının olup olmadığını kontrol et
+# OpenVPN sunucu yapilandirmasinin olup olmadigini kontrol et
 if [[ ! -e /etc/openvpn/server/server.conf ]]; then
-    # Debian minimal kurulumlarında wget veya curl olmadığında uyarı ver
+    # Debian minimal kurulumlarinda wget veya curl olmadiginda uyari ver
     if ! hash wget 2>/dev/null && ! hash curl 2>/dev/null; then
-        echo "Wget bu yükleyiciyi kullanmak için gereklidir."
-        read -n1 -r -p "Wget yüklemek ve devam etmek için bir tuşa basın..."
+        echo "Wget bu yukleyiciyi kullanmak icin gereklidir."
+        read -n1 -r -p "Wget yuklemek ve devam etmek icin bir tusa basin..."
         apt-get update
         apt-get install -y wget
     fi
     clear
-    echo 'OpenVPN road warrior yükleyicisine hoş geldiniz!'
-    # Sistem tek bir IPv4 adresine sahipse otomatik olarak seçilir. Aksi takdirde kullanıcıya sorulur
+    echo 'OpenVPN road warrior yukleyicisine hos geldiniz!'
+    # Sistem tek bir IPv4 adresine sahipse otomatik olarak secilir. Aksi takdirde kullaniciya sorulur
     if [[ $(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}') -eq 1 ]]; then
         ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}')
     else
         number_of_ip=$(ip -4 addr | grep inet | grep -vEc '127(\.[0-9]{1,3}){3}')
         echo
-        echo "Hangi IPv4 adresi kullanılacak?"
+        echo "Hangi IPv4 adresi kullanilacak?"
         ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | nl -s ') '
         read -p "IPv4 adresi [1]: " ip_number
         until [[ -z "$ip_number" || "$ip_number" =~ ^[0-9]+$ && "$ip_number" -le "$number_of_ip" ]]; do
-            echo "$ip_number: geçersiz seçim."
+            echo "$ip_number: gecersiz secim."
             read -p "IPv4 adresi [1]: " ip_number
         done
         [[ -z "$ip_number" ]] && ip_number="1"
         ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | sed -n "$ip_number"p)
     fi
-    # Eğer $ip özel bir IP adresiyse, sunucu NAT arkasında olmalıdır
+    # Eger $ip ozel bir IP adresiyse, sunucu NAT arkasinda olmalidir
     if echo "$ip" | grep -qE '^(10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.|192\.168)'; then
         echo
-        echo "Bu sunucu NAT arkasında. Genel IPv4 adresi veya ana bilgisayar adı nedir?"
+        echo "Bu sunucu NAT arkasinda. Genel IPv4 adresi veya ana bilgisayar adi nedir?"
         # Genel IP'yi al ve grep ile temizle
         get_public_ip=$(grep -m 1 -oE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$' <<< "$(wget -T 10 -t 1 -4qO- "http://ip1.dynupdate.no-ip.com/" || curl -m 10 -4Ls "http://ip1.dynupdate.no-ip.com/")")
-        read -p "Genel IPv4 adresi / ana bilgisayar adı [$get_public_ip]: " public_ip
-        # Eğer checkip servisi kullanılamıyorsa ve kullanıcı giriş yapmadıysa tekrar sor
+        read -p "Genel IPv4 adresi / ana bilgisayar adi [$get_public_ip]: " public_ip
+        # Eger checkip servisi kullanilamiyorsa ve kullanici giris yapmadiysa tekrar sor
         until [[ -n "$get_public_ip" || -n "$public_ip" ]]; do
-            echo "Geçersiz giriş."
-            read -p "Genel IPv4 adresi / Ana Bilgisayar Adı: " public_ip
+            echo "Gecersiz giris."
+            read -p "Genel IPv4 adresi / Ana Bilgisayar Adi: " public_ip
         done
         [[ -z "$public_ip" ]] && public_ip="$get_public_ip"
     fi
-    # Sistem tek bir IPv6 adresine sahipse otomatik olarak seçilir
+    # Sistem tek bir IPv6 adresine sahipse otomatik olarak secilir
     if [[ $(ip -6 addr | grep -c 'inet6 [23]') -eq 1 ]]; then
         ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}')
     fi
-    # Sistem birden fazla IPv6 adresine sahipse kullanıcıya seçim yapması sorulur
+    # Sistem birden fazla IPv6 adresine sahipse kullaniciya secim yapmasi sorulur
     if [[ $(ip -6 addr | grep -c 'inet6 [23]') -gt 1 ]]; then
         number_of_ip6=$(ip -6 addr | grep -c 'inet6 [23]')
         echo
-        echo "Hangi IPv6 adresi kullanılacak?"
+        echo "Hangi IPv6 adresi kullanilacak?"
         ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | nl -s ') '
         read -p "IPv6 adresi [1]: " ip6_number
         until [[ -z "$ip6_number" || "$ip6_number" =~ ^[0-9]+$ && "$ip6_number" -le "$number_of_ip6" ]]; do
-            echo "$ip6_number: geçersiz seçim."
+            echo "$ip6_number: gecersiz secim."
             read -p "IPv6 adresi [1]: " ip6_number
         done
         [[ -z "$ip6_number" ]] && ip6_number="1"
         ip6=$(ip -6 addr | grep 'inet6 [23]' | cut -d '/' -f 1 | grep -oE '([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}' | sed -n "$ip6_number"p)
     fi
     echo
-    echo "OpenVPN hangi protokolü kullanmalı?"
-    echo "   1) UDP (önerilen)"
+    echo "OpenVPN hangi protokolu kullanmali?"
+    echo "   1) UDP (onerilen)"
     echo "   2) TCP"
     read -p "Protokol [1]: " protocol
     until [[ -z "$protocol" || "$protocol" =~ ^[12]$ ]]; do
-        echo "$protocol: geçersiz seçim."
+        echo "$protocol: gecersiz secim."
         read -p "Protokol [1]: " protocol
     done
     case "$protocol" in
@@ -178,13 +178,13 @@ esac
     echo "OpenVPN hangi portu dinlemeli?"
     read -p "Port [1194]: " port
     until [[ -z "$port" || "$port" =~ ^[0-9]+$ && "$port" -le 65535 ]]; do
-        echo "$port: geçersiz port."
+        echo "$port: gecersiz port."
         read -p "Port [1194]: " port
     done
     [[ -z "$port" ]] && port="1194"
     echo
-    echo "İstemciler için bir DNS sunucu seçin:"
-    echo "   1) Mevcut sistem çözücüler"
+    echo "Istemciler icin bir DNS sunucu secin:"
+    echo "   1) Mevcut sistem cozuculer"
     echo "   2) Google"
     echo "   3) 1.1.1.1"
     echo "   4) OpenDNS"
@@ -192,28 +192,28 @@ esac
     echo "   6) AdGuard"
     read -p "DNS sunucu [1]: " dns
     until [[ -z "$dns" || "$dns" =~ ^[1-6]$ ]]; do
-        echo "$dns: geçersiz seçim."
+        echo "$dns: gecersiz secim."
         read -p "DNS sunucu [1]: " dns
     done
     echo
-    echo "İlk istemci için bir isim girin:"
-    read -p "İsim [client]: " unsanitized_client
-    # Çakışmaları önlemek için sınırlı karakter kümesine izin ver
+    echo "Ilk istemci icin bir isim girin:"
+    read -p "Isim [client]: " unsanitized_client
+    # Cakismalari onlemek icin sinirli karakter kumesine izin ver
     client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
     [[ -z "$client" ]] && client="client"
     echo
-    echo "OpenVPN kurulumu başlamaya hazır."
-    # firewalld veya iptables yüklü değilse bir güvenlik duvarı yükleyin
+    echo "OpenVPN kurulumu baslamaya hazir."
+    # firewalld veya iptables yüklü degilse bir guvenlik duvari yukleyin
     if ! systemctl is-active --quiet firewalld.service && ! hash iptables 2>/dev/null; then
         if [[ "$os" == "centos" || "$os" == "fedora" ]]; then
             firewall="firewalld"
-            echo "firewalld, yönlendirme tablolarını yönetmek için gereklidir ve kurulacaktır."
+            echo "firewalld, yonlendirme tablolarini yonetmek icin gereklidir ve kurulacaktir."
         elif [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
             firewall="iptables"
         fi
     fi
-    read -n1 -r -p "Devam etmek için bir tuşa basın... ( barisdemirtas.com.tr )"
-    # Bir konteyner içinde çalışıyorsa LimitNPROC'u devre dışı bırak
+    read -n1 -r -p "Devam etmek icin bir tusa basin... ( barisdemirtas.com.tr )"
+    # Bir konteyner icinde calisiyorsa LimitNPROC'u devre disi birak
     if systemd-detect-virt -cq; then
         mkdir /etc/systemd/system/openvpn-server@server.service.d/ 2>/dev/null
         echo "[Service]
@@ -226,34 +226,34 @@ LimitNPROC=infinity" > /etc/systemd/system/openvpn-server@server.service.d/disab
         dnf install -y epel-release
         dnf install -y openvpn openssl ca-certificates tar $firewall
     else
-        # OS Fedora olmalıdır
+        # OS Fedora olmalidir
         dnf install -y openvpn openssl ca-certificates tar $firewall
     fi
-    # Eğer firewalld yeni kurulduysa etkinleştir
+    # Eger firewalld yeni kurulduysa etkinlestir
     if [[ "$firewall" == "firewalld" ]]; then
         systemctl enable --now firewalld.service
     fi
-    # easy-rsa alın
+    # easy-rsa alin
     easy_rsa_url='https://github.com/OpenVPN/easy-rsa/releases/download/v3.2.1/EasyRSA-3.2.1.tgz'
     mkdir -p /etc/openvpn/server/easy-rsa/
     { wget -qO- "$easy_rsa_url" 2>/dev/null || curl -sL "$easy_rsa_url" ; } | tar xz -C /etc/openvpn/server/easy-rsa/ --strip-components 1
     chown -R root:root /etc/openvpn/server/easy-rsa/
     cd /etc/openvpn/server/easy-rsa/
-    # PKI oluşturun, CA ve sunucu ve istemci sertifikalarını ayarlayın
+    # PKI olusturun, CA ve sunucu ve istemci sertifikalarini ayarlayin
     ./easyrsa --batch init-pki
     ./easyrsa --batch build-ca nopass
     ./easyrsa --batch --days=3650 build-server-full server nopass
     ./easyrsa --batch --days=3650 build-client-full "$client" nopass
     ./easyrsa --batch --days=3650 gen-crl
-    # Gerekli dosyaları taşıyın
+    # Gerekli dosyalari tasiyin
     cp pki/ca.crt pki/private/ca.key pki/issued/server.crt pki/private/server.key pki/crl.pem /etc/openvpn/server
-    # CRL, her istemci bağlantısında okunur
+    # CRL, her istemci baglantisinda okunur
     chown nobody:"$group_name" /etc/openvpn/server/crl.pem
-    # Dizin +x olmadan OpenVPN CRL dosyasında stat() çalıştıramaz
+    # Dizin +x olmadan OpenVPN CRL dosyasinda stat() calistiramaz
     chmod o+x /etc/openvpn/server/
-    # tls-crypt anahtarını oluşturun
+    # tls-crypt anahtarini olusturun
     openvpn --genkey secret /etc/openvpn/server/tc.key
-    # DH parametreleri dosyasını oluşturun
+    # DH parametreleri dosyasini olusturun
     echo '-----BEGIN DH PARAMETERS-----
 MIIBCAKCAQEA//////////+t+FRYortKmq/cViAnPTzx2LnFg84tNpWp4TZBFGQz
 +8yTnc4kmz75fS/jY2MMddj2gbICrsRhetPfHtXV/WVhJDP1H18GbtCFY2VVPe0a
@@ -262,7 +262,7 @@ YdEIqUuyyOP7uWrat2DX9GgdT0Kj3jlN9K5W7edjcrsZCwenyO4KbXCeAvzhzffi
 7MA0BM0oNC9hkXL+nOmFg/+OTxIy7vKBg8P+OxtMb61zO7X8vC7CIAXFjvGDfRaD
 ssbzSibBsu/6iGtCOGEoXJf//////////wIBAg==
 -----END DH PARAMETERS-----' > /etc/openvpn/server/dh.pem
-    # server.conf oluştur
+    # server.conf olustur
     echo "local $ip
 port $port
 proto $protocol
@@ -327,9 +327,9 @@ crl-verify crl.pem" >> /etc/openvpn/server/server.conf
     if [[ "$protocol" = "udp" ]]; then
         echo "explicit-exit-notify" >> /etc/openvpn/server/server.conf
     fi
-    # Sistemde net.ipv4.ip_forward etkinleştirme
+    # Sistemde net.ipv4.ip_forward etkinlestirme
     echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-openvpn-forward.conf
-    # Yeniden başlatmayı beklemeden etkinleştir
+    # Yeniden baslatmayi beklemeden etkinlestir
     echo 1 > /proc/sys/net/ipv4/ip_forward
     if [[ -n "$ip6" ]]; then
         echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.d/99-openvpn-forward.conf
@@ -349,7 +349,7 @@ crl-verify crl.pem" >> /etc/openvpn/server/server.conf
             firewall-cmd --permanent --direct --add-rule ipv6 nat POSTROUTING 0 -s fddd:1194:1194:1194::/64 ! -d fddd:1194:1194:1194::/64 -j SNAT --to "$ip6"
         fi
     else
-        # Kalıcı iptables kuralları oluşturmak için bir servis oluştur
+        # Kalici iptables kurallari olusturmak icin bir servis olustur
         iptables_path=$(command -v iptables)
         ip6tables_path=$(command -v ip6tables)
         if [[ $(systemd-detect-virt) == "openvz" ]] && readlink -f "$(command -v iptables)" | grep -q "nft" && hash iptables-legacy 2>/dev/null; then
@@ -381,14 +381,14 @@ ExecStop=$ip6tables_path -D FORWARD -m state --state RELATED,ESTABLISHED -j ACCE
 WantedBy=multi-user.target" >> /etc/systemd/system/openvpn-iptables.service
         systemctl enable --now openvpn-iptables.service
     fi
-    # Eğer SELinux etkinse ve özel bir port seçildiyse bu gerekli
+    # Eger SELinux etkinse ve ozel bir port secildiyse bu gerekli
     if sestatus 2>/dev/null | grep "Current mode" | grep -q "enforcing" && [[ "$port" != 1194 ]]; then
         if ! hash semanage 2>/dev/null; then
                 dnf install -y policycoreutils-python-utils
         fi
         semanage port -a -t openvpn_port_t -p "$protocol" "$port"
     fi
-    # Sunucu NAT arkasındaysa doğru IP adresini kullan
+    # Sunucu NAT arkasindaysa dogru IP adresini kullan
     [[ -n "$public_ip" ]] && ip="$public_ip"
     echo "client
 dev tun
@@ -405,40 +405,40 @@ verb 3" > /etc/openvpn/server/client-common.txt
     systemctl enable --now openvpn-server@server.service
     new_client
     echo
-    echo "Tamamlandı!"
+    echo "Tamamlandi!"
     echo
-    echo "İstemci yapılandırması burada mevcut:" ~"$client.ovpn"
-    echo "Yeni istemciler eklemek için bu betiği tekrar çalıştırabilirsiniz."
+    echo "Istemci yapilandirmasi burada mevcut:" ~"$client.ovpn"
+    echo "Yeni istemciler eklemek icin bu betigi tekrar calistirabilirsiniz."
 else
     clear
     echo "OpenVPN zaten kurulu."
     echo
-    echo "Bir seçenek belirleyin:"
-    echo "   1) Yeni bir kullanıcı ekleyin"
-    echo "   2) Mevcut bir kullanıcı iptal edin"
-    echo "   3) OpenVPN'i kaldırın"
-    echo "   4) Çıkış"
-    read -p "Seçenek: " option
+    echo "Bir secenek belirleyin:"
+    echo "   1) Yeni bir kullanici ekleyin"
+    echo "   2) Mevcut bir kullanici iptal edin"
+    echo "   3) OpenVPN'i kaldirin"
+    echo "   4) Cikis"
+    read -p "Secenek: " option
     until [[ "$option" =~ ^[1-4]$ ]]; do
-        echo "$option: geçersiz seçim."
-        read -p "Seçenek: " option
+        echo "$option: gecersiz secim."
+        read -p "Secenek: " option
     done
     case "$option" in
         1)
             echo
-            echo "İstemci için bir isim girin:"
-            read -p "İsim: " unsanitized_client
+            echo "Istemci icin bir isim girin:"
+            read -p "Isim: " unsanitized_client
             client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
             while [[ -z "$client" || -e /etc/openvpn/server/easy-rsa/pki/issued/"$client".crt ]]; do
-                echo "$client: geçersiz isim."
-                read -p "İsim: " unsanitized_client
+                echo "$client: gecersiz isim."
+                read -p "Isim: " unsanitized_client
                 client=$(sed 's/[^0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-]/_/g' <<< "$unsanitized_client")
             done
             cd /etc/openvpn/server/easy-rsa/
             ./easyrsa --batch --days=3650 build-client-full "$client" nopass
             new_client
             echo
-            echo "$client eklendi. Yapılandırma burada mevcut:" ~"$client.ovpn"
+            echo "$client eklendi. Yapilandirma burada mevcut:" ~"$client.ovpn"
             exit
         ;;
         2)
@@ -449,18 +449,18 @@ else
                 exit
             fi
             echo
-            echo "İptal edilecek istemciyi seçin:"
+            echo "Iptal edilecek istemciyi secin:"
             tail -n +2 /etc/openvpn/server/easy-rsa/pki/index.txt | grep "^V" | cut -d '=' -f 2 | nl -s ') '
-            read -p "İstemci: " client_number
+            read -p "Istemci: " client_number
             until [[ "$client_number" =~ ^[0-9]+$ && "$client_number" -le "$number_of_clients" ]]; do
-                echo "$client_number: geçersiz seçim."
-                read -p "İstemci: " client_number
+                echo "$client_number: gecersiz secim."
+                read -p "Istemci: " client_number
             done
             client=$(tail -n +2 /etc/openvpn/server/easy-rsa/pki/index.txt | grep "^V" | cut -d '=' -f 2 | sed -n "$client_number"p)
             echo
             read -p "$client iptal edilsin mi? [e/H]: " revoke
             until [[ "$revoke" =~ ^[eEhH]*$ ]]; do
-                echo "$revoke: geçersiz seçim."
+                echo "$revoke: gecersiz secim."
                 read -p "$client iptal edilsin mi? [e/H]: " revoke
             done
             if [[ "$revoke" =~ ^[eE]$ ]]; then
@@ -480,10 +480,10 @@ else
         ;;
         3)
             echo
-            read -p "OpenVPN kaldırılsın mı? [e/H]: " remove
+            read -p "OpenVPN kaldirilsin mi? [e/H]: " remove
             until [[ "$remove" =~ ^[eEhH]*$ ]]; do
-                echo "$remove: geçersiz seçim."
-                read -p "OpenVPN kaldırılsın mı? [e/H]: " remove
+                echo "$remove: gecersiz secim."
+                read -p "OpenVPN kaldirilsin mi? [e/H]: " remove
             done
             if [[ "$remove" =~ ^[eE]$ ]]; then
                 port=$(grep '^port ' /etc/openvpn/server/server.conf | cut -d " " -f 2)
@@ -521,10 +521,10 @@ else
                     rm -rf /etc/openvpn/server
                 fi
                 echo
-                echo "OpenVPN kaldırıldı!"
+                echo "OpenVPN kaldirildi!"
             else
                 echo
-                echo "OpenVPN kaldırma işlemi iptal edildi!"
+                echo "OpenVPN kaldirma islemi iptal edildi!"
             fi
             exit
         ;;
