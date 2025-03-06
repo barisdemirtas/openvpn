@@ -438,7 +438,7 @@ else
             ./easyrsa --batch --days=3650 build-client-full "$client" nopass
             new_client
             echo
-            echo "$client eklendi. Yapilandirma burada mevcut:" ~"$client.ovpn"
+            echo "$client eklendi. Yapilandirma burada mevcut:" ~/"$client.ovpn"
             exit
         ;;
         2)
