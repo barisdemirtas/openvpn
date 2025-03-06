@@ -407,7 +407,7 @@ verb 3" > /etc/openvpn/server/client-common.txt
     echo
     echo "Tamamlandi!"
     echo
-    echo "Istemci yapilandirmasi burada mevcut:" ~"$client.ovpn"
+    echo "Istemci yapilandirmasi burada mevcut:" ~/"$client.ovpn"
     echo "Yeni istemciler eklemek icin bu betigi tekrar calistirabilirsiniz."
 else
     clear
